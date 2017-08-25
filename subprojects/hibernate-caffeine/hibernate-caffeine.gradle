@@ -1,0 +1,5 @@
+dependencies {
+    testCompile project(':hibernate')
+    testCompile "org.hibernate:hibernate-jcache:$hibernateVersion"
+    testRuntime "com.github.ben-manes.caffeine:jcache:$caffeineVersion"
+}

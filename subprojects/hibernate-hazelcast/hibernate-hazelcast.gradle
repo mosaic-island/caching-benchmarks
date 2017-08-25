@@ -1,0 +1,5 @@
+dependencies {
+    testCompile project(':hibernate')
+    testRuntime "com.hazelcast:hazelcast:$hazelcastVersion"
+    testRuntime "com.hazelcast:hazelcast-hibernate52:1.2.2"
+}

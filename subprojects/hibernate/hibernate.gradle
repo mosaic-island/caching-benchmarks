@@ -1,0 +1,4 @@
+dependencies {
+    compile project(':common')
+    compile "org.hibernate:hibernate-core:$hibernateVersion"
+}

@@ -1,0 +1,8 @@
+dependencies {
+    testCompile project(':hibernate')
+    testCompile "org.hibernate:hibernate-infinispan:$hibernateVersion"
+//    testRuntime("org.hibernate:hibernate-infinispan:$hibernateVersion") {
+//        exclude group: 'org.infinispan', module: 'infinispan-core'
+//    }
+//    testRuntime "org.infinispan:infinispan-core:$infinispanVersion"
+}
