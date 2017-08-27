@@ -74,7 +74,7 @@ public abstract class AbstractCacheTestCase {
             rootDir = "build/reports";
         }
 
-        for (int iteration = 0; iteration < 5; iteration++) {
+        for (int iteration = 0; iteration < 50; iteration++) {
             executeBenchmark(iteration);
         }
 
@@ -134,10 +134,12 @@ public abstract class AbstractCacheTestCase {
 
         list.add(executeQueryOn(em2, "em2 [hit l1C2]"));
 
-        EntityManager em3 = entityManagerFactory.createEntityManager();
-        list.add(executeQueryOn(em3, "em3 [hit L2C; load L1C3]"));
+        for (int i = 3; i < 10; i++) {
+            EntityManager em = entityManagerFactory.createEntityManager();
+            list.add(executeQueryOn(em, "em" + i + " [hit L2C; load L1C" + i + "]"));
+            list.add(executeQueryOn(em, "em" + i + " [hit l1C" + i + "]"));
+        }
 
-        list.add(executeQueryOn(em3, "em3 [hit l1C3]"));
         events.add(list);
 
         entityManagerFactory.getCache().evictAll();
