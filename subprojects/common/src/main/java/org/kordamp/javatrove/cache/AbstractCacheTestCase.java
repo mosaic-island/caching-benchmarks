@@ -50,6 +50,7 @@ public abstract class AbstractCacheTestCase {
     static {
         FORMATTER.setMinimumFractionDigits(6);
         FORMATTER.setMaximumFractionDigits(6);
+        System.setProperty("org.jboss.logging.provider", "slf4j");
     }
 
     @Before
