@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static java.util.stream.Collectors.toList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.kordamp.javatrove.cache.StringUtils.padLeft;
@@ -43,7 +44,6 @@ import static org.kordamp.javatrove.cache.StringUtils.padRight;
  * @author Andres Almiray
  */
 public abstract class AbstractCacheTestCase {
-    private final List<List<Event>> events = new ArrayList<>();
     private static final int PERSON_COUNT = 1000;
     private static final NumberFormat FORMATTER = NumberFormat.getInstance();
 
@@ -74,8 +74,9 @@ public abstract class AbstractCacheTestCase {
             rootDir = "build/reports";
         }
 
+        List<List<Event>> events = new ArrayList<>();
         for (int iteration = 0; iteration < 50; iteration++) {
-            executeBenchmark(iteration);
+            executeBenchmark(iteration, events);
         }
 
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
@@ -98,7 +99,7 @@ public abstract class AbstractCacheTestCase {
                 xml.print(" ns=\"" + e.time + "\"");
                 xml.print(" ms=\"" + (e.time / 1_000_000d) + "\"");
                 xml.println("/>");
-                csv.println(e.key + "," + (e.time / 1_000_000d));
+                csv.println(padRight(e.key, " ", 25) + "," + (e.time / 1_000_000d));
             });
             xml.println("  </iteration>");
         }
@@ -111,33 +112,35 @@ public abstract class AbstractCacheTestCase {
         csv.close();
     }
 
-    private void executeBenchmark(int iteration) {
+    private void executeBenchmark(int iteration, List<List<Event>> events) {
         System.out.println("=== Iteration " + iteration + " ===");
         List<Event> list = new ArrayList<>();
         EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("cachedPersistenceUnit");
 
         EntityManager em1 = entityManagerFactory.createEntityManager();
-        list.add(executeQueryOn(em1, "em1 [load L1C1; load L2C]"));
+        executeQueryOn(em1, "em1 [load L1C1; load L2C]", list);
         em1.close();
 
         EntityManager em2 = entityManagerFactory.createEntityManager();
-        list.add(executeQueryOn(em2, "em2 [hit L2C; load L1C2]"));
+        executeQueryOn(em2, "em2 [hit L2C; load L1C2]", list);
 
-        list.add(executeQueryOn(em2, "em2 [hit l1C2]"));
+        executeQueryOn(em2, "em2 [hit l1C2]", list);
 
         em2.clear(); // erase L1C2
-        list.add(executeQueryOn(em2, "em2 [hit L2C; load L1C2]"));
+        executeQueryOn(em2, "em2 [hit L2C; load L1C2]", list);
 
         em2.clear(); // erase L1C2
         entityManagerFactory.getCache().evictAll(); // erase L2C
-        list.add(executeQueryOn(em2, "em2 [load L1C2; load L2C]"));
+        executeQueryOn(em2, "em2 [load L1C2; load L2C]", list);
 
-        list.add(executeQueryOn(em2, "em2 [hit l1C2]"));
+        List<? extends Person> people = executeQueryOn(em2, "em2 [hit l1C2]", list);
+        List<Integer> ids = people.stream().map(Person::getId).collect(toList());
 
         for (int i = 3; i < 10; i++) {
             EntityManager em = entityManagerFactory.createEntityManager();
-            list.add(executeQueryOn(em, "em" + i + " [hit L2C; load L1C" + i + "]"));
-            list.add(executeQueryOn(em, "em" + i + " [hit l1C" + i + "]"));
+            // loaOn(em, "em" + i + " [hit L2C; load L1C" + i + "]", ids, list);
+            executeQueryOn(em, "em" + i + " [hit L2C; load L1C" + i + "]", list);
+            executeQueryOn(em, "em" + i + " [hit l1C" + i + "]", list);
         }
 
         events.add(list);
@@ -146,7 +149,18 @@ public abstract class AbstractCacheTestCase {
         entityManagerFactory.close();
     }
 
-    private Event executeQueryOn(EntityManager entityManager, String key) {
+    protected void loaOn(EntityManager em, String key, List<Integer> ids, List<Event> events) {
+        Class<? extends Person> clazz = resolvePersonClass();
+        long start = System.nanoTime();
+        ids.forEach(id -> {
+            Person p = em.find(clazz, id);
+            assertThat(p.getAddresses(), hasSize(2));
+        });
+        long end = System.nanoTime();
+        events.add(new Event(key, end - start, true, true, true, true));
+    }
+
+    private List<? extends Person> executeQueryOn(EntityManager entityManager, String key, List<Event> events) {
         Class<? extends Person> clazz = resolvePersonClass();
         boolean bl1c = entityManager.find(clazz, 1) != null;
         boolean bl2c = entityManager.getEntityManagerFactory().getCache().contains(clazz, 1);
@@ -170,7 +184,9 @@ public abstract class AbstractCacheTestCase {
         boolean al1c = entityManager.find(clazz, 1) != null;
         boolean al2c = entityManager.getEntityManagerFactory().getCache().contains(clazz, 1);
 
-        return new Event(key, end - start, bl1c, bl2c, al1c, al2c);
+        events.add(new Event(key, end - start, bl1c, bl2c, al1c, al2c));
+
+        return results;
     }
 
     protected abstract Class<? extends Person> resolvePersonClass();
