@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import static java.util.stream.Collectors.toList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.kordamp.javatrove.cache.StringUtils.padLeft;
@@ -44,7 +43,8 @@ import static org.kordamp.javatrove.cache.StringUtils.padRight;
  * @author Andres Almiray
  */
 public abstract class AbstractCacheTestCase {
-    private static final int PERSON_COUNT = 1000;
+    private static final int ITERATION_COUNT = 5;
+    private static final int ENTITY_COUNT = 1000;
     private static final NumberFormat FORMATTER = NumberFormat.getInstance();
 
     static {
@@ -58,7 +58,7 @@ public abstract class AbstractCacheTestCase {
         EntityManagerFactory emf = Persistence.createEntityManagerFactory("persistenceUnit");
         EntityManager em = emf.createEntityManager();
         em.getTransaction().begin();
-        for (int i = 0; i < PERSON_COUNT; i++) {
+        for (int i = 0; i < ENTITY_COUNT; i++) {
             em.persist(createPerson(i));
         }
         em.flush();
@@ -75,9 +75,9 @@ public abstract class AbstractCacheTestCase {
             rootDir = "build/reports";
         }
 
-        List<List<Event>> events = new ArrayList<>();
-        for (int iteration = 0; iteration < 50; iteration++) {
-            executeBenchmark(iteration, events);
+        List<List<Measurement>> measurements = new ArrayList<>();
+        for (int iteration = 0; iteration < ITERATION_COUNT; iteration++) {
+            measurements.add(executeBenchmark(iteration));
         }
 
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
@@ -90,13 +90,13 @@ public abstract class AbstractCacheTestCase {
         xml.println("<?xml version=\"\"?>");
         xml.println("<benchmark name=\"" + getTestName() + "\" time=\"" + df.format(new Date()) + "\">");
 
-        for (int i = 0; i < events.size(); i++) {
-            List<Event> list = events.get(i);
+        for (int i = 0; i < measurements.size(); i++) {
+            List<Measurement> list = measurements.get(i);
             System.out.println("=== Iteration " + i + " ===");
             xml.println("  <iteration index=\"" + i + "\">");
             list.forEach(e -> {
                 System.out.println(e.formatted(" ", 10));
-                xml.print("    <event key=\"" + e.key + "\"");
+                xml.print("    <measurement key=\"" + e.key + "\"");
                 xml.print(" ns=\"" + e.time + "\"");
                 xml.print(" ms=\"" + (e.time / 1_000_000d) + "\"");
                 xml.println("/>");
@@ -113,55 +113,48 @@ public abstract class AbstractCacheTestCase {
         csv.close();
     }
 
-    private void executeBenchmark(int iteration, List<List<Event>> events) {
+    private List<Measurement> executeBenchmark(int iteration) {
         System.out.println("=== Iteration " + iteration + " ===");
-        List<Event> list = new ArrayList<>();
+        List<Measurement> measurements = new ArrayList<>();
         EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("cachedPersistenceUnit");
 
         EntityManager em1 = entityManagerFactory.createEntityManager();
-        executeQueryOn(em1, "em1 [load L1C1; load L2C]", list);
+        measurements.add(executeQueryOn(em1, "em01 [load L1C1; load L2C]"));
         em1.close();
 
         EntityManager em2 = entityManagerFactory.createEntityManager();
-        executeQueryOn(em2, "em2 [hit L2C; load L1C2]", list);
+        measurements.add(executeQueryOn(em2, "em02 [hit L2C; load L1C2]"));
 
-        executeQueryOn(em2, "em2 [hit l1C2]", list);
+        measurements.add(executeQueryOn(em2, "em02 [hit l1C2]"));
 
         em2.clear(); // erase L1C2
-        executeQueryOn(em2, "em2 [hit L2C; load L1C2]", list);
+        measurements.add(executeQueryOn(em2, "em02 [hit L2C; load L1C2]"));
 
         em2.clear(); // erase L1C2
         entityManagerFactory.getCache().evictAll(); // erase L2C
-        executeQueryOn(em2, "em2 [load L1C2; load L2C]", list);
+        measurements.add(executeQueryOn(em2, "em02 [load L1C2; load L2C]"));
 
-        List<? extends Person> people = executeQueryOn(em2, "em2 [hit l1C2]", list);
-        List<Integer> ids = people.stream().map(Person::getId).collect(toList());
+        measurements.add(executeQueryOn(em2, "em02 [hit l1C2]"));
 
         for (int i = 3; i < 10; i++) {
-            EntityManager em = entityManagerFactory.createEntityManager();
-            // loaOn(em, "em" + i + " [hit L2C; load L1C" + i + "]", ids, list);
-            executeQueryOn(em, "em" + i + " [hit L2C; load L1C" + i + "]", list);
-            executeQueryOn(em, "em" + i + " [hit l1C" + i + "]", list);
+            measurements.addAll(measureHitOnCaches(entityManagerFactory, i));
         }
-
-        events.add(list);
 
         entityManagerFactory.getCache().evictAll();
         entityManagerFactory.close();
+
+        return measurements;
     }
 
-    protected void loaOn(EntityManager em, String key, List<Integer> ids, List<Event> events) {
-        Class<? extends Person> clazz = resolvePersonClass();
-        long start = System.nanoTime();
-        ids.forEach(id -> {
-            Person p = em.find(clazz, id);
-            assertThat(p.getAddresses(), hasSize(2));
-        });
-        long end = System.nanoTime();
-        events.add(new Event(key, end - start, true, true, true, true));
+    private List<Measurement> measureHitOnCaches(EntityManagerFactory entityManagerFactory, int index) {
+        List<Measurement> measurements = new ArrayList<>();
+        EntityManager em = entityManagerFactory.createEntityManager();
+        measurements.add(executeQueryOn(em, "em0" + index + " [hit L2C; load L1C" + index + "]"));
+        measurements.add(executeQueryOn(em, "em0" + index + " [hit l1C" + index + "]"));
+        return measurements;
     }
 
-    private List<? extends Person> executeQueryOn(EntityManager entityManager, String key, List<Event> events) {
+    private Measurement executeQueryOn(EntityManager entityManager, String key) {
         Class<? extends Person> clazz = resolvePersonClass();
         boolean bl1c = entityManager.find(clazz, 1) != null;
         boolean bl2c = entityManager.getEntityManagerFactory().getCache().contains(clazz, 1);
@@ -174,7 +167,7 @@ public abstract class AbstractCacheTestCase {
 
         long start = System.nanoTime();
         List<? extends Person> results = query.getResultList();
-        assertThat(results, hasSize(PERSON_COUNT));
+        assertThat(results, hasSize(ENTITY_COUNT));
         for (Person p : results) {
             assertThat(p.getAddresses(), hasSize(2));
         }
@@ -186,9 +179,7 @@ public abstract class AbstractCacheTestCase {
         boolean al1c = entityManager.find(clazz, 1) != null;
         boolean al2c = entityManager.getEntityManagerFactory().getCache().contains(clazz, 1);
 
-        events.add(new Event(key, end - start, bl1c, bl2c, al1c, al2c));
-
-        return results;
+        return new Measurement(key, end - start, bl1c, bl2c, al1c, al2c);
     }
 
     protected abstract Class<? extends Person> resolvePersonClass();
@@ -199,7 +190,7 @@ public abstract class AbstractCacheTestCase {
 
     protected abstract String getTestName();
 
-    private static class Event {
+    private static class Measurement {
         private final String key;
         private final long time;
         private final boolean bl1c;
@@ -207,7 +198,7 @@ public abstract class AbstractCacheTestCase {
         private final boolean al1c;
         private final boolean al2c;
 
-        private Event(String key, long time, boolean bl1c, boolean bl2c, boolean al1c, boolean al2c) {
+        private Measurement(String key, long time, boolean bl1c, boolean bl2c, boolean al1c, boolean al2c) {
             this.key = key;
             this.time = time;
             this.bl1c = bl1c;
@@ -217,7 +208,7 @@ public abstract class AbstractCacheTestCase {
         }
 
         public String formatted(String padding, int size) {
-            return padRight(key, " ", 25) + " time: " +
+            return padRight(key, " ", 26) + " time: " +
                 padLeft(FORMATTER.format(time / 1_000_000d), padding, size) +
                 " ms; " +
                 " BEFORE [L1C: " + padLeft(String.valueOf(bl1c), " ", 5) + ", L2C: " + padLeft(String.valueOf(bl2c), " ", 5) + "]" +
