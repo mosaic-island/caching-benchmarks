@@ -20,7 +20,9 @@ package org.kordamp.javatrove.cache;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -28,6 +30,7 @@ import javax.persistence.Persistence;
 import javax.persistence.TypedQuery;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -49,8 +52,9 @@ import static org.kordamp.javatrove.cache.StringUtils.padRight;
 /**
  * @author Andres Almiray
  */
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public abstract class AbstractCacheTestCase {
-    private static final int ITERATION_COUNT = 5;
+    private static final int ITERATION_COUNT = 50;
     private static final int ENTITY_COUNT = 1000;
     private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors() / 2;
     private static final NumberFormat FORMATTER = NumberFormat.getInstance();
@@ -65,16 +69,6 @@ public abstract class AbstractCacheTestCase {
 
     @Before
     public final void setup() throws Exception {
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("persistenceUnit");
-        EntityManager em = emf.createEntityManager();
-        em.getTransaction().begin();
-        for (int i = 0; i < ENTITY_COUNT; i++) {
-            em.persist(createPerson(i));
-        }
-        em.flush();
-        em.getTransaction().commit();
-        emf.close();
-
         executorService = Executors.newFixedThreadPool(NUMBER_OF_CORES);
     }
 
@@ -84,8 +78,50 @@ public abstract class AbstractCacheTestCase {
         executorService.awaitTermination(2, SECONDS);
     }
 
+    private void setupDataset(int entityCount) {
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("persistenceUnit");
+        EntityManager em = emf.createEntityManager();
+        em.getTransaction().begin();
+        for (int i = 0; i < entityCount; i++) {
+            em.persist(createPerson(i));
+        }
+        em.flush();
+        em.getTransaction().commit();
+        emf.close();
+    }
+
     @Test
-    public final void testCaches() throws Exception {
+    public final void _01_test_read_only_small_data() throws Exception {
+        int entityCount = ENTITY_COUNT;
+        setupDataset(entityCount);
+
+        List<List<Measurement>> measurements = new ArrayList<>();
+        for (int iteration = 0; iteration < ITERATION_COUNT; iteration++) {
+            measurements.add(executeBenchmark(entityCount, iteration));
+        }
+
+        writeReports(measurements, getTestName() + "-smalldata");
+    }
+
+    @Test
+    public final void _02_test_read_only_big_data() throws Exception {
+        int entityCount = ENTITY_COUNT * 5;
+        setupDataset(entityCount);
+
+        List<List<Measurement>> measurements = new ArrayList<>();
+        for (int iteration = 0; iteration < ITERATION_COUNT; iteration++) {
+            if (iteration == ITERATION_COUNT - 1) {
+                // let's _hope_ last iteration does not hit GC
+                System.gc();
+                SECONDS.sleep(2);
+            }
+            measurements.add(executeBenchmark(entityCount, iteration));
+        }
+
+        writeReports(measurements, getTestName() + "-bigdata");
+    }
+
+    private void writeReports(List<List<Measurement>> measurements, String filename) throws IOException {
         String rootDir = System.getenv("rootDir");
         if (rootDir != null) {
             rootDir += File.separator + "build/reports";
@@ -93,20 +129,15 @@ public abstract class AbstractCacheTestCase {
             rootDir = "build/reports";
         }
 
-        List<List<Measurement>> measurements = new ArrayList<>();
-        for (int iteration = 0; iteration < ITERATION_COUNT; iteration++) {
-            measurements.add(executeBenchmark(iteration));
-        }
-
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-        File xmlReport = new File(rootDir, getTestName() + ".xml");
+        File xmlReport = new File(rootDir, filename + ".xml");
         xmlReport.getParentFile().mkdirs();
-        File csvReport = new File(rootDir, getTestName() + ".csv");
+        File csvReport = new File(rootDir, filename + ".csv");
 
         final PrintWriter csv = new PrintWriter(new FileWriter(csvReport));
         final PrintWriter xml = new PrintWriter(new FileWriter(xmlReport));
         xml.println("<?xml version=\"\"?>");
-        xml.println("<benchmark name=\"" + getTestName() + "\" time=\"" + df.format(new Date()) + "\">");
+        xml.println("<benchmark name=\"" + filename + "\" time=\"" + df.format(new Date()) + "\">");
 
         for (int i = 0; i < measurements.size(); i++) {
             List<Measurement> list = measurements.get(i);
@@ -131,36 +162,36 @@ public abstract class AbstractCacheTestCase {
         csv.close();
     }
 
-    private List<Measurement> executeBenchmark(int iteration) throws Exception {
+    private List<Measurement> executeBenchmark(int entityCount, int iteration) throws Exception {
         System.out.println("=== Iteration " + iteration + " ===");
         List<Measurement> measurements = synchronizedList(new ArrayList<>());
         EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("cachedPersistenceUnit");
 
         EntityManager em1 = entityManagerFactory.createEntityManager();
-        measurements.add(executeQueryOn(em1, "em01 [load L1C01; load L2C]"));
+        measurements.add(executeQueryOn(em1, "em01 [load L1C01; load L2C]", entityCount));
         em1.close();
 
         EntityManager em2 = entityManagerFactory.createEntityManager();
-        measurements.add(executeQueryOn(em2, "em02 [hit L2C; load L1C02]"));
+        measurements.add(executeQueryOn(em2, "em02 [hit L2C; load L1C02]", entityCount));
 
-        measurements.add(executeQueryOn(em2, "em02 [hit l1C02]"));
+        measurements.add(executeQueryOn(em2, "em02 [hit l1C02]", entityCount));
 
         em2.clear(); // erase L1C2
-        measurements.add(executeQueryOn(em2, "em02 [hit L2C; load L1C02]"));
+        measurements.add(executeQueryOn(em2, "em02 [hit L2C; load L1C02]", entityCount));
 
         em2.clear(); // erase L1C2
         entityManagerFactory.getCache().evictAll(); // erase L2C
-        measurements.add(executeQueryOn(em2, "em02 [load L1C02; load L2C]"));
+        measurements.add(executeQueryOn(em2, "em02 [load L1C02; load L2C]", entityCount));
 
-        measurements.add(executeQueryOn(em2, "em02 [hit l1C02]"));
+        measurements.add(executeQueryOn(em2, "em02 [hit l1C02]", entityCount));
 
         int serialLimit = 10;
         for (int i = 3; i < serialLimit; i++) {
-            measurements.addAll(measureHitOnCaches(entityManagerFactory, i));
+            measurements.addAll(measureHitOnCaches(entityManagerFactory, i, entityCount));
         }
 
-        executeMesuarementsConcurrently(entityManagerFactory, serialLimit, measurements);
-        executeMesuarementsConcurrently(entityManagerFactory, serialLimit + NUMBER_OF_CORES, measurements);
+        executeMeasurementsConcurrently(entityManagerFactory, serialLimit, measurements, entityCount);
+        executeMeasurementsConcurrently(entityManagerFactory, serialLimit + NUMBER_OF_CORES, measurements, entityCount);
 
         entityManagerFactory.getCache().evictAll();
         entityManagerFactory.close();
@@ -168,7 +199,7 @@ public abstract class AbstractCacheTestCase {
         return measurements;
     }
 
-    private void executeMesuarementsConcurrently(EntityManagerFactory entityManagerFactory, final int offset, List<Measurement> measurements) throws Exception {
+    private void executeMeasurementsConcurrently(EntityManagerFactory entityManagerFactory, final int offset, List<Measurement> measurements, int entityCount) throws Exception {
         final List<Throwable> errors = new CopyOnWriteArrayList<>();
         final CountDownLatch start = new CountDownLatch(NUMBER_OF_CORES + 1);
         final CountDownLatch end = new CountDownLatch(NUMBER_OF_CORES);
@@ -178,7 +209,7 @@ public abstract class AbstractCacheTestCase {
                 start.countDown();
                 try {
                     start.await();
-                    measurements.addAll(measureHitOnCaches(entityManagerFactory, index));
+                    measurements.addAll(measureHitOnCaches(entityManagerFactory, index, entityCount));
                 } catch (Throwable t) {
                     errors.add(t);
                 } finally {
@@ -196,16 +227,17 @@ public abstract class AbstractCacheTestCase {
         }
     }
 
-    private List<Measurement> measureHitOnCaches(EntityManagerFactory entityManagerFactory, int index) {
+    private List<Measurement> measureHitOnCaches(EntityManagerFactory entityManagerFactory, int index, int entityCount) {
         List<Measurement> measurements = new ArrayList<>();
         EntityManager em = entityManagerFactory.createEntityManager();
         String suffix = index < 10 ? "0" + index : "" + index;
-        measurements.add(executeQueryOn(em, "em" + suffix + " [hit L2C; load L1C" + suffix + "]"));
-        measurements.add(executeQueryOn(em, "em" + suffix + " [hit l1C" + suffix + "]"));
+        measurements.add(executeQueryOn(em, "em" + suffix + " [hit L2C; load L1C" + suffix + "]", entityCount));
+        measurements.add(executeQueryOn(em, "em" + suffix + " [hit l1C" + suffix + "]", entityCount));
+        em.close();
         return measurements;
     }
 
-    private Measurement executeQueryOn(EntityManager entityManager, String key) {
+    private Measurement executeQueryOn(EntityManager entityManager, String key, int entityCount) {
         Class<? extends Person> clazz = resolvePersonClass();
         boolean bl1c = entityManager.find(clazz, 1) != null;
         boolean bl2c = entityManager.getEntityManagerFactory().getCache().contains(clazz, 1);
@@ -218,7 +250,7 @@ public abstract class AbstractCacheTestCase {
 
         long start = System.nanoTime();
         List<? extends Person> results = query.getResultList();
-        assertThat(results, hasSize(ENTITY_COUNT));
+        assertThat(results, hasSize(entityCount));
         for (Person p : results) {
             assertThat(p.getAddresses(), hasSize(2));
         }
