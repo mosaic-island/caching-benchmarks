@@ -4,6 +4,120 @@ Caveat emptor: non-scientific benchmarks.
 
 Execute all tests by running `gradlew test`. Reports will be written to the root's `build/reports` directory.
 
+== Assumptions
+
+ * Data is read but not updated.
+ * Collections are marked as lazy bit their contents are read immediately.
+ * Default configuration for each caching solution.
+ * No application server.
+ * Single node, i.e, no distributed caches.
+
+== Caching Providers
+
+The following JPA compatible caching providers were selected
+
+ * EclipseLink
+ * Hibernate + Infinispan
+ * Hibernate + Hazelcast
+ * Hibernate + EhCache
+ * Hibernate + Caffeine
+
+The testcase runs for 50 iterations in order to warmup the JVM. The results look like this after the 50th iteration
+
+[source]
+----
+                            Eclipselink  Infinispan   Hazelcast     EhCache    Caffeine
+01 em1 [load L1C1; load L2C   11.808681   28.565725   18.345017   32.550873   95.089505
+02 em2 [hit L2C; load L1C2]    4.390155    6.527051    4.080421    5.969212   20.797492
+03 em2 [hit l1C2]              2.059326    2.207042    2.055566    2.360047    2.943048
+04 em2 [hit L2C; load L1C2]    4.362781    6.458316    3.964873    4.989766   19.761488
+05 em2 [load L1C2; load L2C    9.995365   28.140835   31.797723   36.235117   47.421162
+06 em2 [hit l1C2]              2.053832    2.949467    2.094855    2.831040    2.380445
+07 em3 [hit L2C; load L1C3]    4.272870   35.286600    3.873382    5.251652   24.524668
+08 em3 [hit l1C3]              1.925533    2.642017    2.055243    2.093435    2.138082
+09 em4 [hit L2C; load L1C4]    4.086284    6.362398    3.795828    5.628775   20.240160
+10 em4 [hit l1C4]              1.772913    2.359920    2.061733    2.186758    2.143420
+11 em5 [hit L2C; load L1C5]    3.600979    6.683047    4.056419    5.728925   20.215418
+12 em5 [hit l1C5]              1.920647    2.760069    2.053258   17.410736    2.130473
+13 em6 [hit L2C; load L1C6]    4.225581    6.728901    3.803637    4.825262   20.547913
+14 em6 [hit l1C6]              1.877866    2.204038    2.037687    2.242741    2.177978
+15 em7 [hit L2C; load L1C7]    4.364862    6.682999    3.954382    4.807087   23.890959
+16 em7 [hit l1C7]              1.756770    2.228841    2.076446    2.190497    2.203102
+17 em8 [hit L2C; load L1C8]    3.571472    6.502668    3.670875    5.049010   19.813020
+18 em8 [hit l1C8]              2.157345    2.193215    2.193280    2.268689    2.130722
+19 em9 [hit L2C; load L1C9]    4.136312    6.640412    3.987260    4.972303   24.012940
+20 em9 [hit l1C9]              1.850056    2.161450    2.186089    2.194188    2.149313
+----
+
+
+++++
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">
+  google.charts.load('current', {'packages':['corechart']});
+  google.charts.setOnLoadCallback(drawChart);
+
+  function drawChart() {
+    var data = google.visualization.arrayToDataTable([
+        ['  ', 'Eclipselink', 'Infinispan', 'Hazelcast',   'EhCache',  'Caffeine'],
+        ['01',    11.808681,     28.565725,   18.345017,   32.550873,   95.089505],
+        ['02',     4.390155,      6.527051,    4.080421,    5.969212,   20.797492],
+        ['03',     2.059326,      2.207042,    2.055566,    2.360047,    2.943048],
+        ['04',     4.362781,      6.458316,    3.964873,    4.989766,   19.761488],
+        ['05',     9.995365,     28.140835,   31.797723,   36.235117,   47.421162],
+        ['06',     2.053832,      2.949467,    2.094855,    2.831040,    2.380445],
+        ['07',     4.272870,     35.286600,    3.873382,    5.251652,   24.524668],
+        ['08',     1.925533,      2.642017,    2.055243,    2.093435,    2.138082],
+        ['09',     4.086284,      6.362398,    3.795828,    5.628775,   20.240160],
+        ['10',     1.772913,      2.359920,    2.061733,    2.186758,    2.143420],
+        ['11',     3.600979,      6.683047,    4.056419,    5.728925,   20.215418],
+        ['12',     1.920647,      2.760069,    2.053258,   17.410736,    2.130473],
+        ['13',     4.225581,      6.728901,    3.803637,    4.825262,   20.547913],
+        ['14',     1.877866,      2.204038,    2.037687,    2.242741,    2.177978],
+        ['15',     4.364862,      6.682999,    3.954382,    4.807087,   23.890959],
+        ['16',     1.756770,      2.228841,    2.076446,    2.190497,    2.203102],
+        ['17',     3.571472,      6.502668,    3.670875,    5.049010,   19.813020],
+        ['18',     2.157345,      2.193215,    2.193280,    2.268689,    2.130722],
+        ['19',     4.136312,      6.640412,    3.987260,    4.972303,   24.012940],
+        ['20',     1.850056,      2.161450,    2.186089,    2.194188,    2.149313],
+    ]);
+
+    var options = {
+      title: 'Cache Access',
+      legend: { position: 'bottom' },
+      series: [
+        {color: 'purple'},
+        {color: 'red'},
+        {color: 'blue'},
+        {color: 'orange'},
+        {color: 'green'},
+      ]
+    };
+
+    var chart = new google.visualization.LineChart(document.getElementById('cache_chart'));
+
+    chart.draw(data, options);
+  }
+</script>
+<div id="cache_chart" style="width: 1024px; height: 800px"></div>
+++++
+
+Environment settings for these results
+
+[source]
+----
+------------------------------------------------------------
+Gradle 4.1
+------------------------------------------------------------
+
+Build time:   2017-08-07 14:38:48 UTC
+Revision:     941559e020f6c357ebb08d5c67acdb858a3defc2
+
+Groovy:       2.4.11
+Ant:          Apache Ant(TM) version 1.9.6 compiled on June 29 2015
+JVM:          1.8.0_144 (Oracle Corporation 25.144-b01)
+OS:           Mac OS X 10.12.5 x86_64
+----
+
 == License
 
 All code found in this repository is licensed under GPL v3
