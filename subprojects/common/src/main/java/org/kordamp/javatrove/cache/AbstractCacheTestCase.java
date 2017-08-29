@@ -18,6 +18,7 @@
  */
 package org.kordamp.javatrove.cache;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,7 +34,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import static java.util.Collections.synchronizedList;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.kordamp.javatrove.cache.StringUtils.padLeft;
@@ -45,7 +52,10 @@ import static org.kordamp.javatrove.cache.StringUtils.padRight;
 public abstract class AbstractCacheTestCase {
     private static final int ITERATION_COUNT = 5;
     private static final int ENTITY_COUNT = 1000;
+    private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors() / 2;
     private static final NumberFormat FORMATTER = NumberFormat.getInstance();
+
+    private ExecutorService executorService;
 
     static {
         FORMATTER.setMinimumFractionDigits(6);
@@ -64,6 +74,14 @@ public abstract class AbstractCacheTestCase {
         em.flush();
         em.getTransaction().commit();
         emf.close();
+
+        executorService = Executors.newFixedThreadPool(NUMBER_OF_CORES);
+    }
+
+    @After
+    public final void tearDown() throws Exception {
+        executorService.shutdownNow();
+        executorService.awaitTermination(2, SECONDS);
     }
 
     @Test
@@ -100,7 +118,7 @@ public abstract class AbstractCacheTestCase {
                 xml.print(" ns=\"" + e.time + "\"");
                 xml.print(" ms=\"" + (e.time / 1_000_000d) + "\"");
                 xml.println("/>");
-                csv.println(padRight(e.key, " ", 25) + "," + (e.time / 1_000_000d));
+                csv.println(padRight(e.key, " ", 27) + "," + (e.time / 1_000_000d));
             });
             xml.println("  </iteration>");
         }
@@ -113,32 +131,36 @@ public abstract class AbstractCacheTestCase {
         csv.close();
     }
 
-    private List<Measurement> executeBenchmark(int iteration) {
+    private List<Measurement> executeBenchmark(int iteration) throws Exception {
         System.out.println("=== Iteration " + iteration + " ===");
-        List<Measurement> measurements = new ArrayList<>();
+        List<Measurement> measurements = synchronizedList(new ArrayList<>());
         EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("cachedPersistenceUnit");
 
         EntityManager em1 = entityManagerFactory.createEntityManager();
-        measurements.add(executeQueryOn(em1, "em01 [load L1C1; load L2C]"));
+        measurements.add(executeQueryOn(em1, "em01 [load L1C01; load L2C]"));
         em1.close();
 
         EntityManager em2 = entityManagerFactory.createEntityManager();
-        measurements.add(executeQueryOn(em2, "em02 [hit L2C; load L1C2]"));
+        measurements.add(executeQueryOn(em2, "em02 [hit L2C; load L1C02]"));
 
-        measurements.add(executeQueryOn(em2, "em02 [hit l1C2]"));
+        measurements.add(executeQueryOn(em2, "em02 [hit l1C02]"));
 
         em2.clear(); // erase L1C2
-        measurements.add(executeQueryOn(em2, "em02 [hit L2C; load L1C2]"));
+        measurements.add(executeQueryOn(em2, "em02 [hit L2C; load L1C02]"));
 
         em2.clear(); // erase L1C2
         entityManagerFactory.getCache().evictAll(); // erase L2C
-        measurements.add(executeQueryOn(em2, "em02 [load L1C2; load L2C]"));
+        measurements.add(executeQueryOn(em2, "em02 [load L1C02; load L2C]"));
 
-        measurements.add(executeQueryOn(em2, "em02 [hit l1C2]"));
+        measurements.add(executeQueryOn(em2, "em02 [hit l1C02]"));
 
-        for (int i = 3; i < 10; i++) {
+        int serialLimit = 10;
+        for (int i = 3; i < serialLimit; i++) {
             measurements.addAll(measureHitOnCaches(entityManagerFactory, i));
         }
+
+        executeMesuarementsConcurrently(entityManagerFactory, serialLimit, measurements);
+        executeMesuarementsConcurrently(entityManagerFactory, serialLimit + NUMBER_OF_CORES, measurements);
 
         entityManagerFactory.getCache().evictAll();
         entityManagerFactory.close();
@@ -146,11 +168,34 @@ public abstract class AbstractCacheTestCase {
         return measurements;
     }
 
+    private void executeMesuarementsConcurrently(EntityManagerFactory entityManagerFactory, final int offset, List<Measurement> measurements) throws InterruptedException {
+        final List<Throwable> errors = new CopyOnWriteArrayList<>();
+        final CountDownLatch start = new CountDownLatch(NUMBER_OF_CORES + 1);
+        final CountDownLatch end = new CountDownLatch(NUMBER_OF_CORES);
+        for (int i = 0; i < NUMBER_OF_CORES; i++) {
+            final int index = offset + i;
+            executorService.submit(() -> {
+                start.countDown();
+                try {
+                    start.await();
+                    measurements.addAll(measureHitOnCaches(entityManagerFactory, index));
+                } catch (Throwable t) {
+                    errors.add(t);
+                } finally {
+                    end.countDown();
+                }
+            });
+        }
+        start.countDown();
+        end.await();
+    }
+
     private List<Measurement> measureHitOnCaches(EntityManagerFactory entityManagerFactory, int index) {
         List<Measurement> measurements = new ArrayList<>();
         EntityManager em = entityManagerFactory.createEntityManager();
-        measurements.add(executeQueryOn(em, "em0" + index + " [hit L2C; load L1C" + index + "]"));
-        measurements.add(executeQueryOn(em, "em0" + index + " [hit l1C" + index + "]"));
+        String suffix = index < 10 ? "0" + index : "" + index;
+        measurements.add(executeQueryOn(em, "em" + suffix + " [hit L2C; load L1C" + suffix + "]"));
+        measurements.add(executeQueryOn(em, "em" + suffix + " [hit l1C" + suffix + "]"));
         return measurements;
     }
 
@@ -208,7 +253,7 @@ public abstract class AbstractCacheTestCase {
         }
 
         public String formatted(String padding, int size) {
-            return padRight(key, " ", 26) + " time: " +
+            return padRight(key, " ", 27) + " time: " +
                 padLeft(FORMATTER.format(time / 1_000_000d), padding, size) +
                 " ms; " +
                 " BEFORE [L1C: " + padLeft(String.valueOf(bl1c), " ", 5) + ", L2C: " + padLeft(String.valueOf(bl2c), " ", 5) + "]" +
