@@ -27,7 +27,7 @@
         <class>org.kordamp.javatrove.cache.HbmPerson</class>
         <class>org.kordamp.javatrove.cache.HbmAddress</class>
         <exclude-unlisted-classes>true</exclude-unlisted-classes>
-        <shared-cache-mode>ENABLE_SELECTIVE</shared-cache-mode>
+        <shared-cache-mode>NONE</shared-cache-mode>
         <properties>
             <property name="javax.persistence.jdbc.url" value="jdbc:h2:file:/tmp/caches"/>
             <property name="javax.persistence.jdbc.user" value="sa"/>
@@ -39,7 +39,7 @@
             <property name="hibernate.cache.use_second_level_cache" value="false"/>
             <property name="hibernate.cache.use_query_cache" value="false"/>
             <property name="hibernate.cache.region.factory_class"
-                      value="com.hazelcast.hibernate.HazelcastLocalCacheRegionFactory"/>
+                      value="org.hibernate.cache.internal.NoCachingRegionFactory"/>
         </properties>
     </persistence-unit>
     <persistence-unit name="cachedPersistenceUnit" transaction-type="RESOURCE_LOCAL">
