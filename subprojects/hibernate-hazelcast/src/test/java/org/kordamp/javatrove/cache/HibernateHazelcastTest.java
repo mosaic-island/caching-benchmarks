@@ -50,4 +50,9 @@ public class HibernateHazelcastTest extends AbstractCacheTestCase {
     protected String getTestName() {
         return "hibernate-hazelcast";
     }
+
+    @Override
+    protected String getBaseName() {
+        return "hibernate";
+    }
 }

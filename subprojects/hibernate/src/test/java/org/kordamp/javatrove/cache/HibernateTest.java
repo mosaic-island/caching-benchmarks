@@ -50,4 +50,9 @@ public class HibernateTest extends AbstractCacheTestCase {
     protected String getTestName() {
         return "hibernate";
     }
+
+    @Override
+    protected String getBaseName() {
+        return "hibernate";
+    }
 }

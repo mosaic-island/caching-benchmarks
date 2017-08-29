@@ -54,7 +54,7 @@ import static org.kordamp.javatrove.cache.StringUtils.padRight;
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public abstract class AbstractCacheTestCase {
-    private static final int ITERATION_COUNT = 50;
+    private static final int ITERATION_COUNT = 1;
     private static final int ENTITY_COUNT = 1000;
     private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors() / 2;
     private static final NumberFormat FORMATTER = NumberFormat.getInstance();
@@ -79,7 +79,7 @@ public abstract class AbstractCacheTestCase {
     }
 
     private void setupDataset(int entityCount) {
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("persistenceUnit");
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory(getBaseName() + "-persistenceUnit");
         EntityManager em = emf.createEntityManager();
         em.getTransaction().begin();
         for (int i = 0; i < entityCount; i++) {
@@ -165,7 +165,7 @@ public abstract class AbstractCacheTestCase {
     private List<Measurement> executeBenchmark(int entityCount, int iteration) throws Exception {
         System.out.println("=== Iteration " + iteration + " ===");
         List<Measurement> measurements = synchronizedList(new ArrayList<>());
-        EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("cachedPersistenceUnit");
+        EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory(getTestName() + "-cachedPersistenceUnit");
 
         EntityManager em1 = entityManagerFactory.createEntityManager();
         measurements.add(executeQueryOn(em1, "em01 [load L1C01; load L2C]", entityCount));
@@ -272,6 +272,8 @@ public abstract class AbstractCacheTestCase {
     protected abstract TypedQuery<? extends Person> createQuery(EntityManager entityManager);
 
     protected abstract String getTestName();
+
+    protected abstract String getBaseName();
 
     private static class Measurement {
         private final String key;

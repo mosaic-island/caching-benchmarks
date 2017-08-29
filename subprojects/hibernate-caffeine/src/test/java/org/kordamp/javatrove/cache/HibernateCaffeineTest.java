@@ -50,4 +50,9 @@ public class HibernateCaffeineTest extends AbstractCacheTestCase {
     protected String getTestName() {
         return "hibernate-caffeine";
     }
+
+    @Override
+    protected String getBaseName() {
+        return "hibernate";
+    }
 }

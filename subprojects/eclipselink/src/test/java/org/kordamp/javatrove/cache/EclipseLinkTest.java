@@ -50,4 +50,9 @@ public class EclipseLinkTest extends AbstractCacheTestCase {
     protected String getTestName() {
         return "eclipselink";
     }
+
+    @Override
+    protected String getBaseName() {
+        return "eclipselink";
+    }
 }

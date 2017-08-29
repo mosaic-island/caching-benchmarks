@@ -50,4 +50,9 @@ public class HibernateInfinispanTest extends AbstractCacheTestCase {
     protected String getTestName() {
         return "hibernate-infinispan";
     }
+
+    @Override
+    protected String getBaseName() {
+        return "hibernate";
+    }
 }
