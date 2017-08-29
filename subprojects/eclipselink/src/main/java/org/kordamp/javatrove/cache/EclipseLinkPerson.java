@@ -35,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static javax.persistence.CascadeType.ALL;
-import static javax.persistence.FetchType.EAGER;
+import static javax.persistence.FetchType.LAZY;
 
 /**
  * @author Andres Almiray
@@ -58,7 +58,7 @@ public class EclipseLinkPerson implements Person {
     @Column(nullable = false)
     private String lastname;
 
-    @OneToMany(cascade = {ALL}, mappedBy = "person", fetch = EAGER, targetEntity = EclipseLinkAddress.class)
+    @OneToMany(cascade = {ALL}, mappedBy = "person", fetch = LAZY, targetEntity = EclipseLinkAddress.class)
     @OrderBy("address DESC")
     private List<Address> addresses;
 
