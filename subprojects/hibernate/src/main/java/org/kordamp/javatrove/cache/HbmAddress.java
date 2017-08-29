@@ -30,7 +30,6 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import javax.transaction.Transactional;
 
 /**
  * @author Andres Almiray
@@ -39,7 +38,6 @@ import javax.transaction.Transactional;
 @Table(name = "addresses")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-@Transactional
 public class HbmAddress implements Address {
     private static final long serialVersionUID = 6600041802974891049L;
 

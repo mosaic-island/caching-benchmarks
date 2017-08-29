@@ -29,6 +29,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
 import javax.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,6 +59,7 @@ public class EclipseLinkPerson implements Person {
     private String lastname;
 
     @OneToMany(cascade = {ALL}, mappedBy = "person", fetch = EAGER, targetEntity = EclipseLinkAddress.class)
+    @OrderBy("address DESC")
     private List<Address> addresses;
 
     public EclipseLinkPerson() {

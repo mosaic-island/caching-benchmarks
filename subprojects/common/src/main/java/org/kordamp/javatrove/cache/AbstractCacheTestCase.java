@@ -168,8 +168,9 @@ public abstract class AbstractCacheTestCase {
 
         entityManager.getTransaction().begin();
         TypedQuery<? extends Person> query = createQuery(entityManager);
-        query.setHint("javax.persistence.cache.storeMode", "REFRESH");
         query.setHint("org.hibernate.cacheable", "true");
+        query.setHint("javax.persistence.cache.retrieveMode", "USE");
+        // query.setHint("javax.persistence.cache.storeMode", "REFRESH");
 
         long start = System.nanoTime();
         List<? extends Person> results = query.getResultList();

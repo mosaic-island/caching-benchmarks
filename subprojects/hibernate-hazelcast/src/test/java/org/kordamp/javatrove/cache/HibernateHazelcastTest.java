@@ -38,7 +38,7 @@ public class HibernateHazelcastTest extends AbstractCacheTestCase {
         String suffix = padLeft(String.valueOf(index), "0", 3);
         return new HbmPerson("name_" + suffix,
             "lastname_" + suffix,
-            asList(new HbmAddress("home_address_" + suffix + "_001"), new HbmAddress("office_address_" + suffix + "002")));
+            asList(new HbmAddress("home_address_" + suffix + "_001"), new HbmAddress("office_address_" + suffix + "_002")));
     }
 
     @Override

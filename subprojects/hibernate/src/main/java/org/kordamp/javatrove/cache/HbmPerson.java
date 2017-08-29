@@ -28,13 +28,13 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
 import javax.persistence.Table;
-import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
 import static javax.persistence.CascadeType.ALL;
-import static javax.persistence.FetchType.EAGER;
+import static javax.persistence.FetchType.LAZY;
 
 /**
  * @author Andres Almiray
@@ -43,7 +43,6 @@ import static javax.persistence.FetchType.EAGER;
 @Table(name = "people")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-@Transactional
 public class HbmPerson implements Person {
     private static final long serialVersionUID = 6943969047529196874L;
 
@@ -58,7 +57,9 @@ public class HbmPerson implements Person {
     @Column(nullable = false)
     private String lastname;
 
-    @OneToMany(cascade = {ALL}, mappedBy = "person", fetch = EAGER, targetEntity = HbmAddress.class)
+    @OneToMany(cascade = {ALL}, mappedBy = "person", fetch = LAZY, targetEntity = HbmAddress.class)
+    @OrderBy("address DESC")
+    @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     private List<Address> addresses;
 
     public HbmPerson() {
