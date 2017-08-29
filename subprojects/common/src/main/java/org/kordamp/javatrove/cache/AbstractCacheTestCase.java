@@ -168,7 +168,7 @@ public abstract class AbstractCacheTestCase {
         return measurements;
     }
 
-    private void executeMesuarementsConcurrently(EntityManagerFactory entityManagerFactory, final int offset, List<Measurement> measurements) throws InterruptedException {
+    private void executeMesuarementsConcurrently(EntityManagerFactory entityManagerFactory, final int offset, List<Measurement> measurements) throws Exception {
         final List<Throwable> errors = new CopyOnWriteArrayList<>();
         final CountDownLatch start = new CountDownLatch(NUMBER_OF_CORES + 1);
         final CountDownLatch end = new CountDownLatch(NUMBER_OF_CORES);
@@ -188,6 +188,12 @@ public abstract class AbstractCacheTestCase {
         }
         start.countDown();
         end.await();
+
+        if (!errors.isEmpty()) {
+            IllegalStateException iae = new IllegalStateException("There are " + errors.size() + " errors!");
+            errors.forEach(iae::addSuppressed);
+            throw iae;
+        }
     }
 
     private List<Measurement> measureHitOnCaches(EntityManagerFactory entityManagerFactory, int index) {
