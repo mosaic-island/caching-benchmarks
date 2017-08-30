@@ -38,8 +38,6 @@ import javax.persistence.Persistence;
 import javax.persistence.TypedQuery;
 import java.text.NumberFormat;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -62,6 +60,7 @@ public abstract class AbstractCacheBenchmark {
     private static final NumberFormat FORMATTER = NumberFormat.getInstance();
 
     private ExecutorService executorService;
+    private EntityManagerFactory entityManagerFactory;
 
     @Param({"1000", "5000"})
     private int entityCount;
@@ -80,6 +79,9 @@ public abstract class AbstractCacheBenchmark {
 
     @TearDown
     public final void tearDown() throws Exception {
+        entityManagerFactory.getCache().evictAll();
+        entityManagerFactory.close();
+
         executorService.shutdownNow();
         executorService.awaitTermination(2, SECONDS);
     }
@@ -94,71 +96,17 @@ public abstract class AbstractCacheBenchmark {
         em.flush();
         em.getTransaction().commit();
         emf.close();
+
+        // load L2C
+        entityManagerFactory = Persistence.createEntityManagerFactory(getTestName() + "-cachedPersistenceUnit");
+        EntityManager em1 = entityManagerFactory.createEntityManager();
+        executeQueryOn(em1, entityCount, null);
+        em1.close();
     }
 
     @Benchmark
-    public final void _01_test_read_only(Blackhole bh) throws Exception {
-        EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory(getTestName() + "-cachedPersistenceUnit");
-
-        EntityManager em1 = entityManagerFactory.createEntityManager();
-        executeQueryOn(em1, entityCount, bh);
-        em1.close();
-
-        EntityManager em2 = entityManagerFactory.createEntityManager();
-        executeQueryOn(em2, entityCount, bh);
-
-        executeQueryOn(em2, entityCount, bh);
-
-        em2.clear(); // erase L1C2
-        executeQueryOn(em2, entityCount, bh);
-
-        em2.clear(); // erase L1C2
-        entityManagerFactory.getCache().evictAll(); // erase L2C
-        executeQueryOn(em2, entityCount, bh);
-
-        executeQueryOn(em2, entityCount, bh);
-
-        for (int i = 3; i < 10; i++) {
-            measureHitOnCaches(entityManagerFactory, entityCount, bh);
-        }
-
-        executeMeasurementsConcurrently(entityManagerFactory, entityCount, bh);
-        executeMeasurementsConcurrently(entityManagerFactory, entityCount, bh);
-
-        entityManagerFactory.getCache().evictAll();
-        entityManagerFactory.close();
-    }
-
-    private void executeMeasurementsConcurrently(EntityManagerFactory entityManagerFactory, int entityCount, Blackhole bh) throws Exception {
-        final List<Throwable> errors = new CopyOnWriteArrayList<>();
-        final CountDownLatch start = new CountDownLatch(NUMBER_OF_CORES + 1);
-        final CountDownLatch end = new CountDownLatch(NUMBER_OF_CORES);
-        for (int i = 0; i < NUMBER_OF_CORES; i++) {
-            executorService.submit(() -> {
-                start.countDown();
-                try {
-                    start.await();
-                    measureHitOnCaches(entityManagerFactory, entityCount, bh);
-                } catch (Throwable t) {
-                    errors.add(t);
-                } finally {
-                    end.countDown();
-                }
-            });
-        }
-        start.countDown();
-        end.await();
-
-        if (!errors.isEmpty()) {
-            IllegalStateException iae = new IllegalStateException("There are " + errors.size() + " errors!");
-            errors.forEach(iae::addSuppressed);
-            throw iae;
-        }
-    }
-
-    private void measureHitOnCaches(EntityManagerFactory entityManagerFactory, int entityCount, Blackhole bh) {
+    public final void _01_hit_L2C(Blackhole bh) throws Exception {
         EntityManager em = entityManagerFactory.createEntityManager();
-        executeQueryOn(em, entityCount, bh);
         executeQueryOn(em, entityCount, bh);
         em.close();
     }
@@ -171,7 +119,7 @@ public abstract class AbstractCacheBenchmark {
         // query.setHint("javax.persistence.cache.storeMode", "REFRESH");
 
         List<? extends Person> results = query.getResultList();
-        bh.consume(results);
+        if (bh != null) {bh.consume(results);}
         assertThat(results, hasSize(entityCount));
         for (Person p : results) {
             assertThat(p.getAddresses(), hasSize(2));
