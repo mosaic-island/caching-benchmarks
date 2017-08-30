@@ -1,5 +1,2 @@
 dependencies {
-    compile "org.eclipse.persistence:javax.persistence:$jpaVersion"
-    compile "junit:junit:$junitVersion"
-    compile "org.hamcrest:hamcrest-library:$hamcrestVersion"
 }

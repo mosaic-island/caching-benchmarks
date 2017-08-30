@@ -27,12 +27,7 @@ import static org.kordamp.javatrove.cache.StringUtils.padLeft;
 /**
  * @author Andres Almiray
  */
-public class HibernateTest extends AbstractCacheTestCase {
-    @Override
-    protected Class<? extends Person> resolvePersonClass() {
-        return HbmPerson.class;
-    }
-
+public class HibernateInfinispanBenchmark extends AbstractCacheBenchmark {
     @Override
     protected Object createPerson(int index) {
         String suffix = padLeft(String.valueOf(index), "0", 5);
@@ -48,7 +43,7 @@ public class HibernateTest extends AbstractCacheTestCase {
 
     @Override
     protected String getTestName() {
-        return "hibernate";
+        return "hibernate-infinispan";
     }
 
     @Override

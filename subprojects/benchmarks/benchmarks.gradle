@@ -1,0 +1,15 @@
+dependencies {
+    compile project(':eclipselink')
+    compile project(':hibernate')
+    compile project(':hibernate-caffeine')
+    compile project(':hibernate-ehcache')
+    compile project(':hibernate-hazelcast')
+    compile project(':hibernate-infinispan')
+}
+
+shadowJar {
+    mergeServiceFiles()
+    mergeServiceFiles {
+        path = 'META-INF/BenchmarkList'
+    }
+}
