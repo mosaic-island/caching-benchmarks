@@ -21,6 +21,7 @@ package org.kordamp.javatrove.cache;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
@@ -38,13 +39,12 @@ import javax.persistence.Persistence;
 import javax.persistence.TypedQuery;
 import java.text.NumberFormat;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.openjdk.jmh.annotations.Level.Iteration;
 
 /**
  * @author Andres Almiray
@@ -52,17 +52,17 @@ import static org.hamcrest.Matchers.hasSize;
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.SingleShotTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 20)
+@Warmup(iterations = 30)
 @Measurement(iterations = 10)
 @Fork(5)
 public abstract class AbstractCacheBenchmark {
     private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors() / 2;
     private static final NumberFormat FORMATTER = NumberFormat.getInstance();
 
-    private ExecutorService executorService;
     private EntityManagerFactory entityManagerFactory;
+    private EntityManager entityManager;
 
-    @Param({"1000", "5000"})
+    @Param({"1000", "10000"})
     private int entityCount;
 
     static {
@@ -72,21 +72,7 @@ public abstract class AbstractCacheBenchmark {
     }
 
     @Setup
-    public final void setup() throws Exception {
-        executorService = Executors.newFixedThreadPool(NUMBER_OF_CORES);
-        setupDataset(entityCount);
-    }
-
-    @TearDown
-    public final void tearDown() throws Exception {
-        entityManagerFactory.getCache().evictAll();
-        entityManagerFactory.close();
-
-        executorService.shutdownNow();
-        executorService.awaitTermination(2, SECONDS);
-    }
-
-    private void setupDataset(int entityCount) {
+    public final void setupTrial() throws Exception {
         EntityManagerFactory emf = Persistence.createEntityManagerFactory(getBaseName() + "-persistenceUnit");
         EntityManager em = emf.createEntityManager();
         em.getTransaction().begin();
@@ -96,22 +82,34 @@ public abstract class AbstractCacheBenchmark {
         em.flush();
         em.getTransaction().commit();
         emf.close();
+    }
+
+    @Setup(Iteration)
+    public final void setupIteration() {
+        entityManagerFactory = Persistence.createEntityManagerFactory(getTestName() + "-cachedPersistenceUnit");
 
         // load L2C
-        entityManagerFactory = Persistence.createEntityManagerFactory(getTestName() + "-cachedPersistenceUnit");
-        EntityManager em1 = entityManagerFactory.createEntityManager();
-        executeQueryOn(em1, entityCount, null);
-        em1.close();
+        EntityManager em = entityManagerFactory.createEntityManager();
+        executeQueryOn(null, em, entityCount);
+        em.close();
+
+        entityManager = entityManagerFactory.createEntityManager();
+    }
+
+    @TearDown(Iteration)
+    public final void tearDownIteration() {
+        entityManager.close();
+
+        entityManagerFactory.getCache().evictAll();
+        entityManagerFactory.close();
     }
 
     @Benchmark
     public final void _01_hit_L2C(Blackhole bh) throws Exception {
-        EntityManager em = entityManagerFactory.createEntityManager();
-        executeQueryOn(em, entityCount, bh);
-        em.close();
+        executeQueryOn(bh, entityManager, entityCount);
     }
 
-    private void executeQueryOn(EntityManager entityManager, int entityCount, Blackhole bh) {
+    private void executeQueryOn(Blackhole bh, EntityManager entityManager, int entityCount) {
         entityManager.getTransaction().begin();
         TypedQuery<? extends Person> query = createQuery(entityManager);
         query.setHint("org.hibernate.cacheable", "true");

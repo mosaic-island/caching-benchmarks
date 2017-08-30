@@ -60,4 +60,8 @@ subprojects {
             )
         }
     }
+
+    shadowJar {
+        classifier = 'jmh'
+    }
 }
