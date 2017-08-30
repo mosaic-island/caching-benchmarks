@@ -8,6 +8,7 @@ dependencies {
 }
 
 shadowJar {
+    mergeServiceFiles()
     mergeServiceFiles {
         path = 'META-INF/BenchmarkList'
     }
