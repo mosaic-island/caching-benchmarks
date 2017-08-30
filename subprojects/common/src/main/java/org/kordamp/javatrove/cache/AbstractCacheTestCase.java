@@ -54,7 +54,7 @@ import static org.kordamp.javatrove.cache.StringUtils.padRight;
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public abstract class AbstractCacheTestCase {
-    private static final int ITERATION_COUNT = 1;
+    private static final int ITERATION_COUNT = 50;
     private static final int ENTITY_COUNT = 1000;
     private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors() / 2;
     private static final NumberFormat FORMATTER = NumberFormat.getInstance();
