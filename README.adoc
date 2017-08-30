@@ -119,6 +119,31 @@ JVM:          1.8.0_144 (Oracle Corporation 25.144-b01)
 OS:           Mac OS X 10.12.5 x86_64
 ----
 
+
+== JMH Benchmarks
+
+Currently the benchmark reports hits on L2C only, no other operations are being measured. There
+are two datasets, one with 1000 root entities, with a collection of 2 subentities each; another
+with 10,000 root entities with also a collection of 2 subentities each. No entities are shared,
+no explicit writes are issued to the cache nor the DB.
+
+[source]
+----
+Benchmark                                 (entityCount)  Mode  Cnt     Score     Error  Units
+EclipseLinkBenchmark._01_hit_L2C                   1000    ss   50     8.326 ±   0.489  ms/op
+EclipseLinkBenchmark._01_hit_L2C                  10000    ss   50   118.764 ±   2.432  ms/op
+HibernateBenchmark._01_hit_L2C                     1000    ss   50    20.269 ±   2.861  ms/op
+HibernateBenchmark._01_hit_L2C                    10000    ss   50   240.692 ±   5.425  ms/op
+HibernateCaffeineBenchmark._01_hit_L2C             1000    ss   50    99.018 ±   9.579  ms/op
+HibernateCaffeineBenchmark._01_hit_L2C            10000    ss   50   963.201 ±  63.210  ms/op
+HibernateEhcacheBenchmark._01_hit_L2C              1000    ss   50    13.024 ±   1.208  ms/op
+HibernateEhcacheBenchmark._01_hit_L2C             10000    ss   50  1982.550 ± 456.772  ms/op
+HibernateHazelcastBenchmark._01_hit_L2C            1000    ss   50    10.349 ±   1.443  ms/op
+HibernateHazelcastBenchmark._01_hit_L2C           10000    ss   50   137.379 ±  11.160  ms/op
+HibernateInfinispanBenchmark._01_hit_L2C           1000    ss   50    11.777 ±   0.416  ms/op
+HibernateInfinispanBenchmark._01_hit_L2C          10000    ss   50   426.776 ±  10.096  ms/op
+----
+
 == License
 
 All code found in this repository is licensed under GPL v3
