@@ -1,5 +1,5 @@
 dependencies {
-    testCompile project(':hibernate')
-    testRuntime "org.hibernate:hibernate-ehcache:$hibernateVersion"
-    testRuntime "net.sf.ehcache:ehcache:$ehcacheVersion"
+    compile project(':hibernate')
+    runtime "org.hibernate:hibernate-ehcache:$hibernateVersion"
+    runtime "net.sf.ehcache:ehcache:$ehcacheVersion"
 }
