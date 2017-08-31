@@ -134,8 +134,8 @@ EclipseLinkBenchmark._01_hit_L2C                   1000    ss   50     8.326 ± 
 EclipseLinkBenchmark._01_hit_L2C                  10000    ss   50   118.764 ±   2.432  ms/op
 HibernateBenchmark._01_hit_L2C                     1000    ss   50    20.269 ±   2.861  ms/op
 HibernateBenchmark._01_hit_L2C                    10000    ss   50   240.692 ±   5.425  ms/op
-HibernateCaffeineBenchmark._01_hit_L2C             1000    ss   50    99.018 ±   9.579  ms/op
-HibernateCaffeineBenchmark._01_hit_L2C            10000    ss   50   963.201 ±  63.210  ms/op
+HibernateCaffeineBenchmark._01_hit_L2C             1000    ss   50    12.590 ±   3.969  ms/op
+HibernateCaffeineBenchmark._01_hit_L2C            10000    ss   50   153.862 ±   8.426  ms/op
 HibernateEhcacheBenchmark._01_hit_L2C              1000    ss   50    13.024 ±   1.208  ms/op
 HibernateEhcacheBenchmark._01_hit_L2C             10000    ss   50  1982.550 ± 456.772  ms/op
 HibernateHazelcastBenchmark._01_hit_L2C            1000    ss   50    10.349 ±   1.443  ms/op
