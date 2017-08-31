@@ -1,4 +1,5 @@
 = Persistence Cache Benchmarks
+:linkattrs:
 
 Caveat emptor: non-scientific benchmarks.
 
@@ -22,85 +23,125 @@ The following JPA compatible caching providers were selected
  * Hibernate + EhCache
  * Hibernate + Caffeine
 
-The testcase runs for 50 iterations in order to warmup the JVM. The results look like this after the 50th iteration. The
+== Scenarios
+
+There are two datasets used at the moment:
+
+[horizontal]
+Small:: 6,000 entities and 2,000 collections.
+Big:: 120,000 entities and 40,000 collections.
+
+The Small dataset should fit entirely in L2C. The Big dataset should overflow L2C leading to cache misses and reads from
+the database when needed. All data is read-only.
+
+== Running
+
+=== Tests
+
+All testcases can be run by invoking `gradlew test`. Reports will be written to the root's `build/reports` directory.
+
+=== Benchmarks
+
+JMH benchmarks may be run using the console. You must first pack the benchmarks invoking `gradlew shadowJar`. This generates
+a `-jmh.jar` per subproject, allowing you to run a smaller set of benchmarks. You can run all of them with a single command
+
+    java -jar subprojects/benchmarks/build/libs/benchmarks-jmh.jar
+
+These benchmarks only test access to L2C with both datasets.
+
+== Results
+
+=== Tests
+
+The testcases run for 50 iterations in order to warmup the JVM. The results look like this after the 50th iteration. The
 measurements are in milliseconds. The Hibernate column is configured with no cache.
 
+Measurements between 07 and 20 were made sequentially.
+Measurements between 21 and 36 were done concurrently, with 4 EntityManagers per group.
+
 [source]
+.Small dataset
 ----
-                             Eclipselink  Hibernate  Infinispan  Hazelcast   EhCache   Caffeine
-01 em1 [load L1C1; load L2C]   13.497332  15.133310  29.761332  24.369891  38.078855  18.489389
-02 em2 [hit L2C; load L1C2]     4.771606  13.236914   6.313264   4.157640   5.565752   4.596457
-03 em2 [hit l1C2]               2.323158   2.435262   2.200776   3.553077   2.585426   2.040239
-04 em2 [hit L2C; load L1C2]     6.227024  12.468418   6.111950   4.439370   5.670020   5.576494
-05 em2 [load L1C2; load L2C]   14.425914  11.959534  31.792107  32.865633  33.439345  32.348254
-06 em2 [hit l1C2]               2.332670   2.809644   2.192553   2.404821   3.302681   3.038904
-07 em3 [hit L2C; load L1C3]     5.230997  12.579771  35.114809   4.375070   6.058060   4.736145
-08 em3 [hit l1C3]               2.082420   2.783062   2.397730   2.179949   2.747790   3.414787
-09 em4 [hit L2C; load L1C4]     4.802970  12.495340   6.020772   4.635258   6.546988   6.348750
-10 em4 [hit l1C4]               2.987462   2.609842   2.116523   2.348548   2.384092   3.214563
-11 em5 [hit L2C; load L1C5]     5.334021  12.151646   5.985727   4.302260   5.872530   5.653393
-12 em5 [hit l1C5]               2.511636   2.716749   2.086152   2.158952   2.938011   3.015893
-13 em6 [hit L2C; load L1C6]     5.015225  12.399856   6.082465   6.193973   5.853196   5.427149
-14 em6 [hit l1C6]               3.406396   2.433126   2.110163   2.673234   2.446404   2.774722
-15 em7 [hit L2C; load L1C7]     5.848381  12.346576   6.094542   4.688742   5.859470   6.641920
-16 em7 [hit l1C7]               2.952381   2.416804   2.093718   3.445318   2.276232   2.024312
-17 em8 [hit L2C; load L1C8]     5.055647  13.066471   6.017012   4.866795   7.434332   4.336579
-18 em8 [hit l1C8]               2.676953   2.442861   2.091851   2.427540   2.690314   2.033306
-19 em9 [hit L2C; load L1C9]     5.376201  12.737866   5.889659   4.757325   5.514962   4.808656
-20 em9 [hit l1C9]               2.236590   2.978726   2.120045   2.601815   2.524291   2.140113
+                               Eclipselink  Hibernate Infinispan  Hazelcast    EhCache   Caffeine
+01 em01 [load L1C01; load L2C]   13.497332  15.133310  29.761332  24.369891  38.078855  18.489389
+02 em02 [hit L2C; load L1C02]     4.771606  13.236914   6.313264   4.157640   5.565752   4.596457
+03 em02 [hit l1C02]               2.323158   2.435262   2.200776   3.553077   2.585426   2.040239
+04 em02 [hit L2C; load L1C02]     6.227024  12.468418   6.111950   4.439370   5.670020   5.576494
+05 em02 [load L1C02; load L2C]   14.425914  11.959534  31.792107  32.865633  33.439345  32.348254
+06 em02 [hit l1C02]               2.332670   2.809644   2.192553   2.404821   3.302681   3.038904
+07 em03 [hit L2C; load L1C03]     5.230997  12.579771  35.114809   4.375070   6.058060   4.736145
+08 em03 [hit l1C03]               2.082420   2.783062   2.397730   2.179949   2.747790   3.414787
+09 em04 [hit L2C; load L1C04]     4.802970  12.495340   6.020772   4.635258   6.546988   6.348750
+10 em04 [hit l1C04]               2.987462   2.609842   2.116523   2.348548   2.384092   3.214563
+11 em05 [hit L2C; load L1C05]     5.334021  12.151646   5.985727   4.302260   5.872530   5.653393
+12 em05 [hit l1C05]               2.511636   2.716749   2.086152   2.158952   2.938011   3.015893
+13 em06 [hit L2C; load L1C06]     5.015225  12.399856   6.082465   6.193973   5.853196   5.427149
+14 em06 [hit l1C06]               3.406396   2.433126   2.110163   2.673234   2.446404   2.774722
+15 em07 [hit L2C; load L1C07]     5.848381  12.346576   6.094542   4.688742   5.859470   6.641920
+16 em07 [hit l1C07]               2.952381   2.416804   2.093718   3.445318   2.276232   2.024312
+17 em08 [hit L2C; load L1C08]     5.055647  13.066471   6.017012   4.866795   7.434332   4.336579
+18 em08 [hit l1C08]               2.676953   2.442861   2.091851   2.427540   2.690314   2.033306
+19 em09 [hit L2C; load L1C09]     5.376201  12.737866   5.889659   4.757325   5.514962   4.808656
+20 em09 [hit l1C90]               2.236590   2.978726   2.120045   2.601815   2.524291   2.140113
+21 em10 [hit L2C; load L1C10]     5.743444  14.319268   7.844201   5.607234   6.116363   5.124800
+22 em10 [hit l1C10]               2.453445   2.632728   2.549783   2.719833   2.548533   2.485225
+23 em11 [hit L2C; load L1C11]     5.726650  14.734618   8.230577   4.852829   7.807934   5.215465
+24 em11 [hit l1C11]               2.397493   2.749502   2.799299   2.600755   2.499485   2.572090
+25 em12 [hit L2C; load L1C12]     5.755469  14.969821   7.993120   4.656144   6.010904   6.570965
+26 em12 [hit l1C12]               2.409082   2.744650   2.574990   2.720079   4.256463   2.376777
+27 em13 [hit L2C; load L1C13]     5.772770  14.688855   7.832917   4.862166   6.416738   6.393002
+28 em13 [hit l1C13]               2.585630   3.059538   2.762424   2.585465   4.514754   2.470266
+29 em14 [hit L2C; load L1C14]     6.069505  14.786179   6.624126   4.321274   5.370087   4.347519
+30 em14 [hit l1C14]               2.409101   2.722027   2.759295   2.185751   2.616433   2.453976
+31 em15 [hit L2C; load L1C15]     6.051042  14.782678   8.078056   4.633306   5.380406   4.316865
+32 em15 [hit l1C15]               2.436015   2.708827   4.077355   2.172975   2.614810   2.423256
+33 em16 [hit L2C; load L1C16]     6.085083  14.976039   8.276077   4.632058   5.380836   4.378307
+34 em16 [hit l1C16]               2.563649   2.724793   3.777502   2.186519   2.533118   2.441327
+35 em17 [hit L2C; load L1C17]     6.085155  15.005859   8.628029   4.632140   5.379724   4.347798
+36 em17 [hit l1C17]               3.087052   2.719143   2.496214   2.167360   2.513394   2.416311
 ----
 
-++++
-<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-<script type="text/javascript">
-  google.charts.load('current', {'packages':['corechart']});
-  google.charts.setOnLoadCallback(drawChart);
-
-  function drawChart() {
-    var data = google.visualization.arrayToDataTable([
-        ['  ', 'Eclipselink', 'Hibernate', 'Infinispan', 'Hazelcast',  'EhCache', 'Caffeine'],
-        ['01',     13.497332,   15.133310,    29.761332,   24.369891,  38.078855,  18.489389],
-        ['02',      4.771606,   13.236914,     6.313264,    4.157640,   5.565752,   4.596457],
-        ['03',      2.323158,    2.435262,     2.200776,    3.553077,   2.585426,   2.040239],
-        ['04',      6.227024,   12.468418,     6.111950,    4.439370,   5.670020,   5.576494],
-        ['05',     14.425914,   11.959534,    31.792107,   32.865633,  33.439345,  32.348254],
-        ['06',      2.332670,    2.809644,     2.192553,    2.404821,   3.302681,   3.038904],
-        ['07',      5.230997,   12.579771,    35.114809,    4.375070,   6.058060,   4.736145],
-        ['08',      2.082420,    2.783062,     2.397730,    2.179949,   2.747790,   3.414787],
-        ['09',      4.802970,   12.495340,     6.020772,    4.635258,   6.546988,   6.348750],
-        ['10',      2.987462,    2.609842,     2.116523,    2.348548,   2.384092,   3.214563],
-        ['11',      5.334021,   12.151646,     5.985727,    4.302260,   5.872530,   5.653393],
-        ['12',      2.511636,    2.716749,     2.086152,    2.158952,   2.938011,   3.015893],
-        ['13',      5.015225,   12.399856,     6.082465,    6.193973,   5.853196,   5.427149],
-        ['14',      3.406396,    2.433126,     2.110163,    2.673234,   2.446404,   2.774722],
-        ['15',      5.848381,   12.346576,     6.094542,    4.688742,   5.859470,   6.641920],
-        ['16',      2.952381,    2.416804,     2.093718,    3.445318,   2.276232,   2.024312],
-        ['17',      5.055647,   13.066471,     6.017012,    4.866795,   7.434332,   4.336579],
-        ['18',      2.676953,    2.442861,     2.091851,    2.427540,   2.690314,   2.033306],
-        ['19',      5.376201,   12.737866,     5.889659,    4.757325,   5.514962,   4.808656],
-        ['20',      2.236590,    2.978726,     2.120045,    2.601815,   2.524291,   2.140113],
-    ]);
-
-    var options = {
-      title: 'Cache Access',
-      legend: { position: 'bottom' },
-      series: [
-        {color: 'purple'},
-        {color: 'black'},
-        {color: 'red'},
-        {color: 'blue'},
-        {color: 'orange'},
-        {color: 'green'},
-      ]
-    };
-
-    var chart = new google.visualization.LineChart(document.getElementById('cache_chart'));
-
-    chart.draw(data, options);
-  }
-</script>
-<div id="cache_chart" style="width: 1024px; height: 800px"></div>
-++++
+[source]
+.Big dataset
+----
+                               Eclipselink   Hibernate  Infinispan   Hazelcast      EhCache    Caffeine
+01 em01 [load L1C01; load L2C]  186.154640  151.168376  324.252039  193.207952   380.732792  208.158898
+02 em02 [hit L2C; load L1C02]    55.451799  130.912119  325.208024   55.028995  1326.023877   53.517349
+03 em02 [hit l1C02]              45.420277   36.927138   43.850681   34.715328    32.590968   36.367698
+04 em02 [hit L2C; load L1C02]    62.414210  130.257853  315.109768   48.777871  1349.906280   52.970577
+05 em02 [load L1C02; load L2C]   157.83674  128.798413  287.026266  271.072601   402.181181  274.834377
+06 em02 [hit l1C02]              34.445246   46.816737   55.723048   54.072233    56.407261   51.365026
+07 em03 [hit L2C; load L1C03]    59.444052  144.982750  399.375772   52.266915  1313.566172   59.039916
+08 em03 [hit l1C03]              34.838681   42.793278   77.298090   35.989097    38.822473   35.703253
+09 em04 [hit L2C; load L1C04]    58.815142  146.056931  321.377436   54.868606  1398.707076   54.753445
+10 em04 [hit l1C04]              37.841002   38.966799   41.681951   35.653834    29.151039   39.206143
+11 em05 [hit L2C; load L1C05]    58.870050  135.179471  314.547895   52.830490  1277.316165   57.751688
+12 em05 [hit l1C05]              38.484846   40.937365   45.327648   35.838368    47.980900   37.508564
+13 em06 [hit L2C; load L1C06]    58.267310  128.437924  313.560663   53.304024  1274.019529   58.764148
+14 em06 [hit l1C06]              34.474568   37.972085   41.433731   37.910037    45.330991   36.019781
+15 em07 [hit L2C; load L1C07]    62.431359  149.674214  314.853242   55.850282  1279.748131   58.620778
+16 em07 [hit l1C07]              40.361041   39.965992   42.051743   36.968442    33.378015   35.475330
+17 em08 [hit L2C; load L1C08]    59.305539  142.112163  332.477811   54.049690  1297.512200   58.249828
+18 em08 [hit l1C08]              38.088485   47.573509   47.341665   36.544129    30.433348   37.636375
+19 em09 [hit L2C; load L1C09]    58.042468  133.140498  360.548870   54.807245  1279.962541   58.841519
+20 em09 [hit l1C90]              35.909277   37.748682   36.763263   38.648709    50.173249   38.106361
+21 em10 [hit L2C; load L1C10]    70.707322  185.017864  369.606400   56.273137  1463.431305   59.473793
+22 em10 [hit l1C10]              36.169323   45.175684   38.465163   32.862608    32.503387   35.759218
+23 em11 [hit L2C; load L1C11]    71.093333  186.960927  369.115722   56.413804  1463.772526   58.798361
+24 em11 [hit l1C11]              35.019714   42.420641   38.696404   32.828542    32.489360   44.495896
+25 em12 [hit L2C; load L1C12]    71.015334  185.624512  368.959873   57.211058  1463.520965   58.569463
+26 em12 [hit l1C12]              37.216317   42.993489   39.048246   32.941583    33.267920   37.587102
+27 em13 [hit L2C; load L1C13]    70.706345  187.819810  369.062800   56.345597  1463.594348   58.875013
+28 em13 [hit l1C13]              38.111864   45.342357   38.549347   34.687888    33.220925   43.120980
+29 em14 [hit L2C; load L1C14]    69.608541  171.975660  407.097851   85.272751  1469.356290   59.232734
+30 em14 [hit l1C14]              78.651541   36.500838   29.299610   28.284042    40.638893   30.688714
+31 em15 [hit L2C; load L1C15]    69.277590  174.107254  407.085545   85.272890  1469.337803   59.370477
+32 em15 [hit l1C15]              78.651051   35.396689   29.472639   28.279848    40.441050   34.123485
+33 em16 [hit L2C; load L1C16]    69.647341  178.830409  407.088342   85.272764  1469.346472   59.232745
+34 em16 [hit l1C16]              79.507742   37.888152   29.260190   28.109426    40.542412   28.812003
+35 em17 [hit L2C; load L1C17]    69.278157  183.724488  407.086678   85.272856  1469.337557   59.232684
+36 em17 [hit l1C17]              77.209814   35.570872   29.949296   28.499750    39.809755   34.750465
+----
 
 Environment settings for these results
 
@@ -120,12 +161,7 @@ OS:           Mac OS X 10.12.5 x86_64
 ----
 
 
-== JMH Benchmarks
-
-Currently the benchmark reports hits on L2C only, no other operations are being measured. There
-are two datasets, one with 1000 root entities, with a collection of 2 subentities each; another
-with 10,000 root entities with also a collection of 2 subentities each. No entities are shared,
-no explicit writes are issued to the cache nor the DB.
+=== JMH Benchmarks
 
 [source]
 ----
@@ -143,6 +179,10 @@ HibernateHazelcastBenchmark._01_hit_L2C           10000    ss   50   137.379 ± 
 HibernateInfinispanBenchmark._01_hit_L2C           1000    ss   50    11.777 ±   0.416  ms/op
 HibernateInfinispanBenchmark._01_hit_L2C          10000    ss   50   426.776 ±  10.096  ms/op
 ----
+
+=== Graphs
+
+Interactive graphs for these results can be found link:http://aalmiray.github.io/caching-benchmarks/[here, window="_blank"].
 
 == License
 

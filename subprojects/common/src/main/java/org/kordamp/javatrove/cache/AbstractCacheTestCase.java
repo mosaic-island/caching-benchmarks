@@ -55,7 +55,8 @@ import static org.kordamp.javatrove.cache.StringUtils.padRight;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public abstract class AbstractCacheTestCase {
     private static final int ITERATION_COUNT = 50;
-    private static final int ENTITY_COUNT = 1000;
+    private static final int ENTITY_COUNT_SMALL = 1000;
+    private static final int ENTITY_COUNT_BIG = ENTITY_COUNT_SMALL * 10;
     private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors() / 2;
     private static final NumberFormat FORMATTER = NumberFormat.getInstance();
 
@@ -92,7 +93,7 @@ public abstract class AbstractCacheTestCase {
 
     @Test
     public final void _01_test_read_only_small_data() throws Exception {
-        int entityCount = ENTITY_COUNT;
+        int entityCount = ENTITY_COUNT_SMALL;
         setupDataset(entityCount);
 
         List<List<Measurement>> measurements = new ArrayList<>();
@@ -105,7 +106,7 @@ public abstract class AbstractCacheTestCase {
 
     @Test
     public final void _02_test_read_only_big_data() throws Exception {
-        int entityCount = ENTITY_COUNT * 5;
+        int entityCount = ENTITY_COUNT_BIG;
         setupDataset(entityCount);
 
         List<List<Measurement>> measurements = new ArrayList<>();
