@@ -52,8 +52,8 @@ import static org.openjdk.jmh.annotations.Level.Iteration;
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.SingleShotTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 30)
-@Measurement(iterations = 10)
+@Warmup(iterations = 1)
+@Measurement(iterations = 1)
 @Fork(5)
 public abstract class AbstractCacheBenchmark {
     private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors() / 2;
@@ -62,7 +62,7 @@ public abstract class AbstractCacheBenchmark {
     private EntityManagerFactory entityManagerFactory;
     private EntityManager entityManager;
 
-    @Param({"1000", "10000"})
+    @Param({"10", "100"})
     private int entityCount;
 
     static {

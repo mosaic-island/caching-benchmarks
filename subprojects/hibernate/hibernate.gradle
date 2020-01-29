@@ -1,5 +1,4 @@
 dependencies {
     compile project(':common')
     compile "org.hibernate:hibernate-core:$hibernateVersion"
-    compile "com.github.mihaicostin:hibernate-l2-memcached:5.2.17.0"
 }
