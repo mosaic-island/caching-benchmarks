@@ -1,0 +1,15 @@
+version: "3.7"
+
+services:
+  memcached:
+    image: "memcached:latest"
+    ports:
+      # <Port exposed> : < MSSQL Port running inside container>
+      - "11211:11211"
+    privileged: false
+  redis:
+    image: "redis:5.0.7"
+    ports:
+      # <Port exposed> : < MSSQL Port running inside container>
+      - "6379:6379"
+    privileged: false

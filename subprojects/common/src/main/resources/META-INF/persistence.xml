@@ -180,4 +180,48 @@
                       value="org.hibernate.cache.infinispan.InfinispanRegionFactory"/>
         </properties>
     </persistence-unit>
+    <persistence-unit name="hibernate-memcached-cachedPersistenceUnit" transaction-type="RESOURCE_LOCAL">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+        <class>org.kordamp.javatrove.cache.HbmPerson</class>
+        <class>org.kordamp.javatrove.cache.HbmAddress</class>
+        <exclude-unlisted-classes>true</exclude-unlisted-classes>
+        <shared-cache-mode>ENABLE_SELECTIVE</shared-cache-mode>
+        <properties>
+            <property name="javax.persistence.jdbc.url" value="jdbc:h2:file:/tmp/caches"/>
+            <property name="javax.persistence.jdbc.user" value="sa"/>
+            <property name="javax.persistence.jdbc.password" value=""/>
+            <property name="hibernate.hbm2ddl.auto" value="validate"/>
+            <property name="hibernate.generate_statistics" value="true"/>
+            <property name="hibernate.dialect" value="org.hibernate.dialect.H2Dialect"/>
+            <property name="hibernate.show_sql" value="false"/>
+            <property name="hibernate.cache.use_second_level_cache" value="true"/>
+            <property name="hibernate.cache.use_query_cache" value="false"/>
+            <property name="hibernate.cache.region.factory_class" value="com.mc.hibernate.memcached.MemcachedRegionFactory"/>
+            <property name="hibernate.memcached.operationTimeout" value="5000"/>
+            <property name="hibernate.memcached.connectionFactory" value="KetamaConnectionFactory" />
+            <property name="hibernate.memcached.hashAlgorithm" value="FNV1_64_HASH" />
+            <property name="hibernate.memcached.servers" value="localhost:11211" />
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="hibernate-redisson-cachedPersistenceUnit" transaction-type="RESOURCE_LOCAL">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+        <class>org.kordamp.javatrove.cache.HbmPerson</class>
+        <class>org.kordamp.javatrove.cache.HbmAddress</class>
+        <exclude-unlisted-classes>true</exclude-unlisted-classes>
+        <shared-cache-mode>ENABLE_SELECTIVE</shared-cache-mode>
+        <properties>
+            <property name="javax.persistence.jdbc.url" value="jdbc:h2:file:/tmp/caches"/>
+            <property name="javax.persistence.jdbc.user" value="sa"/>
+            <property name="javax.persistence.jdbc.password" value=""/>
+            <property name="hibernate.hbm2ddl.auto" value="validate"/>
+            <property name="hibernate.generate_statistics" value="true"/>
+            <property name="hibernate.dialect" value="org.hibernate.dialect.H2Dialect"/>
+            <property name="hibernate.show_sql" value="false"/>
+            <property name="hibernate.cache.use_second_level_cache" value="true"/>
+            <property name="hibernate.cache.use_query_cache" value="false"/>
+            <property name="hibernate.cache.region.factory_class" value="org.redisson.hibernate.RedissonRegionFactory"/>
+            <property name="hibernate.cache.region_prefix" value="hibernate"/>
+            <property name="hibernate.redisson.config" value="classpath:redisson.yaml" />
+        </properties>
+    </persistence-unit>
 </persistence>

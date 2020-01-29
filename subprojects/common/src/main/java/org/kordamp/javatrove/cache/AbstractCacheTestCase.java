@@ -24,10 +24,7 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.persistence.TypedQuery;
+import javax.persistence.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -54,8 +51,8 @@ import static org.kordamp.javatrove.cache.StringUtils.padRight;
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public abstract class AbstractCacheTestCase {
-    private static final int ITERATION_COUNT = 50;
-    private static final int ENTITY_COUNT_SMALL = 1000;
+    private static final int ITERATION_COUNT = 5;
+    private static final int ENTITY_COUNT_SMALL = 10;
     private static final int ENTITY_COUNT_BIG = ENTITY_COUNT_SMALL * 10;
     private static final int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors() / 2;
     private static final NumberFormat FORMATTER = NumberFormat.getInstance();
@@ -82,6 +79,7 @@ public abstract class AbstractCacheTestCase {
     private void setupDataset(int entityCount) {
         EntityManagerFactory emf = Persistence.createEntityManagerFactory(getBaseName() + "-persistenceUnit");
         EntityManager em = emf.createEntityManager();
+//        clearDatabase(em);
         em.getTransaction().begin();
         for (int i = 0; i < entityCount; i++) {
             em.persist(createPerson(i));
@@ -89,6 +87,17 @@ public abstract class AbstractCacheTestCase {
         em.flush();
         em.getTransaction().commit();
         emf.close();
+    }
+
+
+    private void clearDatabase(EntityManager em) {
+        em.getTransaction().begin();
+        Query delete_from_addresses = em.createQuery("DELETE FROM HbmAddress");
+        Query delete_from_people = em.createQuery("DELETE FROM HbmPerson");
+        delete_from_addresses.executeUpdate();
+        delete_from_people.executeUpdate();
+        em.flush();
+        em.getTransaction().commit();
     }
 
     @Test

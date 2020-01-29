@@ -1,9 +1,9 @@
 plugins {
     id 'base'
-    id 'com.github.ben-manes.versions'   version '0.15.0'
-    id 'com.github.hierynomus.license'   version '0.11.0'
-    id 'net.ltgt.apt'                    version '0.11'  apply false
-    id 'com.github.johnrengelman.shadow' version '2.0.1'
+    id 'com.github.ben-manes.versions'   version '0.27.0'
+    id 'com.github.hierynomus.license'   version '0.15.0'
+    id 'net.ltgt.apt'                    version '0.21'  apply false
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
 }
 
 subprojects {
@@ -30,7 +30,7 @@ subprojects {
         runtime "org.slf4j:jul-to-slf4j:$slf4jVersion"
 
         compile     "org.openjdk.jmh:jmh-core:$jmhVersion"
-        apt         "org.openjdk.jmh:jmh-generator-annprocess:$jmhVersion"
+        annotationProcessor "org.openjdk.jmh:jmh-generator-annprocess:$jmhVersion"
         compileOnly "org.openjdk.jmh:jmh-generator-annprocess:$jmhVersion"
     }
 

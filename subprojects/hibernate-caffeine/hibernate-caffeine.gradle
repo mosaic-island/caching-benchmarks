@@ -1,5 +1,0 @@
-dependencies {
-    compile project(':hibernate')
-    compile "org.hibernate:hibernate-jcache:$hibernateVersion"
-    runtime "com.github.ben-manes.caffeine:jcache:$caffeineVersion"
-}

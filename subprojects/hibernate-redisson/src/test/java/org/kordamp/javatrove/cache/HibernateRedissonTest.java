@@ -1,21 +1,3 @@
-/*
- * Copyright 2017 Andres Almiray
- *
- * This file is part of JavaTrove Examples
- *
- * JavaTrove Examples is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * JavaTrove Examples is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with JavaTrove Examples. If not, see <http://www.gnu.org/licenses/>.
- */
 package org.kordamp.javatrove.cache;
 
 import javax.persistence.EntityManager;
@@ -24,10 +6,10 @@ import javax.persistence.TypedQuery;
 import static java.util.Arrays.asList;
 import static org.kordamp.javatrove.cache.StringUtils.padLeft;
 
-/**
- * @author Andres Almiray
- */
-public class HibernateTest extends AbstractCacheTestCase {
+public class HibernateRedissonTest extends AbstractCacheTestCase {
+// redis://redis-replication-group.1iipbr.ng.0001.euw1.cache.amazonaws.com:6379
+// redis://localhost:6379
+
     @Override
     protected Class<? extends Person> resolvePersonClass() {
         return HbmPerson.class;
@@ -48,11 +30,12 @@ public class HibernateTest extends AbstractCacheTestCase {
 
     @Override
     protected String getTestName() {
-        return "hibernate";
+        return "hibernate-redisson";
     }
 
     @Override
     protected String getBaseName() {
         return "hibernate";
     }
+
 }
