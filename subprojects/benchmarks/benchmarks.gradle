@@ -1,8 +1,9 @@
 dependencies {
     compile project(':hibernate')
-    compile project(':hibernate-ehcache')
+//    compile project(':hibernate-ehcache')
     compile project(':hibernate-memcached')
     compile project(':hibernate-redisson')
+    compile project(':hibernate-redisson-pro')
 }
 
 shadowJar {

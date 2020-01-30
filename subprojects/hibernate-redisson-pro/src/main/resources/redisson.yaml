@@ -1,0 +1,24 @@
+registrationKey: ndgXOkAleqDDhR1QfUPxS9j1bZHmSWypKbJlTTku8/Nehf4+qC8uhImtdzyAEvrRNrHC6EjYG+nRo2yueVMfGaAxsDnsPvpf/QkW5z7IoXpu+WSMWCAzGbjXPegdFGFslU6YUwkOv0QpzRFzqnB4EUrPdnI0SVVYUJ+e1/LThsc=
+singleServerConfig:
+  idleConnectionTimeout: 10000
+  pingTimeout: 1000
+  connectTimeout: 10000
+  timeout: 3000
+  retryAttempts: 3
+  retryInterval: 1500
+  reconnectionTimeout: 3000
+  failedAttempts: 3
+  password: null
+  subscriptionsPerConnection: 5
+  clientName: null
+#  address: "redis://localhost:6379"
+  address: "redis://redis-benchmark.1iipbr.ng.0001.euw1.cache.amazonaws.com:6379"
+  subscriptionConnectionMinimumIdleSize: 1
+  subscriptionConnectionPoolSize: 50
+  connectionMinimumIdleSize: 10
+  connectionPoolSize: 64
+  database: 0
+  dnsMonitoringInterval: 5000
+threads: 0
+nettyThreads: 0
+codec: !<org.redisson.codec.FstCodec> {}

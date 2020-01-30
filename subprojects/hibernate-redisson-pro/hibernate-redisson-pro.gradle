@@ -1,0 +1,5 @@
+dependencies {
+    compile project(':hibernate')
+    compile "pro.redisson:redisson:3.12.0"
+    compile "pro.redisson:redisson-hibernate-53:3.12.0"
+}

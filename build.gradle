@@ -16,6 +16,9 @@ subprojects {
     repositories {
         jcenter()
         mavenCentral()
+        maven {
+            url "https://redisson.pro/repo/"
+        }
     }
 
     dependencies {
