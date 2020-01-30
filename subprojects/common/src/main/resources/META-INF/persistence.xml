@@ -200,7 +200,7 @@
             <property name="hibernate.memcached.operationTimeout" value="5000"/>
             <property name="hibernate.memcached.connectionFactory" value="KetamaConnectionFactory" />
             <property name="hibernate.memcached.hashAlgorithm" value="FNV1_64_HASH" />
-            <property name="hibernate.memcached.servers" value="localhost:11211" />
+            <property name="hibernate.memcached.servers" value="memcached-benchmark.1iipbr.cfg.euw1.cache.amazonaws.com:11211" />
         </properties>
     </persistence-unit>
     <persistence-unit name="hibernate-redisson-cachedPersistenceUnit" transaction-type="RESOURCE_LOCAL">

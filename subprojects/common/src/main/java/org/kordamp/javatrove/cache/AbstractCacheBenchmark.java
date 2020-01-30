@@ -52,7 +52,7 @@ import static org.openjdk.jmh.annotations.Level.Iteration;
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.SingleShotTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 30)
+@Warmup(iterations = 5)
 @Measurement(iterations = 10)
 @Fork(5)
 public abstract class AbstractCacheBenchmark {
